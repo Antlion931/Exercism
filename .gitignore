@@ -2,3 +2,5 @@
 tests
 .exercism
 .articles
+*.bats
+*.bash

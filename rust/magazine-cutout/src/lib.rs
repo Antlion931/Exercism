@@ -1,21 +1,19 @@
-// This stub file contains items that aren't used yet; feel free to remove this module attribute
-// to enable stricter warnings.
-#![allow(unused)]
-
+use itertools::Itertools;
 use std::collections::HashMap;
 
-pub fn can_construct_note(magazine: &[&str], note: &[&str]) -> bool {
-    let mut map = HashMap::new();
-    for m in magazine.into_iter() {
-        *map.entry(m).or_insert(0) += 1;
-    }
+fn count_words<'a>(words: &[&'a str]) -> HashMap<&'a str, usize> {
+    itertools::sorted(words.iter())
+            .dedup_with_count()
+            .map(|(n, w)| (*w, n)).collect::<HashMap<_, _>>()
+}
 
-    for m in note.into_iter() {
-        *map.entry(m).or_insert(0) -= 1;
-        if(*map.get(m).unwrap() < 0) {
+pub fn can_construct_note(magazine: &[&str], note: &[&str]) -> bool {
+    let magazine = count_words(magazine);
+
+    for (word, note_count) in count_words(note) {
+        if magazine.get(word).filter(|magazine_count| **magazine_count >= note_count).is_none() {
             return false;
         }
     }
-
     true
 }

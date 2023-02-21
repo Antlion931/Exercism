@@ -16,24 +16,13 @@ pub enum ResistorColor {
     White = 9,
 }
 
-pub fn color_to_value(_color: ResistorColor) -> u32 {
-    _color.int_value()
+pub fn color_to_value(color: ResistorColor) -> u32 {
+    color.int_value()
 }
 
 pub fn value_to_color_string(value: u32) -> String {
-    match value {
-        0 => "Black".into(),
-        1 => "Brown".into(),
-        2 => "Red".into(),
-        3 => "Orange".into(),
-        4 => "Yellow".into(),
-        5 => "Green".into(),
-        6 => "Blue".into(),
-        7 => "Violet".into(),
-        8 => "Grey".into(),
-        9 => "White".into(),
-        _ => "value out of range".into(),
-    } 
+    ResistorColor::from_int(value)
+        .map_or("value out of range".to_string(), |resistor| format!("{resistor:?}"))
 }
 
 pub fn colors() -> Vec<ResistorColor> {

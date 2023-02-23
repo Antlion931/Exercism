@@ -10,34 +10,22 @@ pub struct Player {
 
 impl Player {
     pub fn revive(&self) -> Option<Player> {
-        if self.health == 0 {
-            Some(Player{
+        (self.health == 0).then_some(
+            Player{
                 health: 100,
-                mana: if self.level < 10{None} else {Some(100)}, 
-                level: self.level})
-        } else {
-            None
-        }
+                mana: (self.level >= 10).then_some(100), 
+                level: self.level
+            })
     }
 
     pub fn cast_spell(&mut self, mana_cost: u32) -> u32 {
         match self.mana {
-            Some(cost) 
-                =>  if cost >= mana_cost {
-                        self.mana = Some(cost -mana_cost);
-                        mana_cost * 2
-                    } else {
-                        0
-                    }
-            None 
-                => {
-                    if self.health > mana_cost {
-                        self.health -= mana_cost;
-                    } else {
-                        self.health = 0;
-                    }
-                    0
-                } 
+            Some(mana) =>  if let Some(new_mana) = mana.checked_sub(mana_cost) {
+                   self.mana = Some(new_mana);
+                   return mana_cost * 2;
+                }
+            None => self.health = self.health.saturating_sub(mana_cost), 
         }
+        0
     }
 }

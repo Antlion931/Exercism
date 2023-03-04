@@ -1,24 +1,5 @@
-use std::ops::Neg;
 use std::collections::HashMap;
 use itertools::Itertools;
-
-enum MatchResult {
-    WIN,
-    DRAW,
-    LOSS,
-}
-
-impl Neg for MatchResult {
-    type Output = MatchResult;
-
-    fn neg(self) -> Self::Output {
-        match self {
-            MatchResult::WIN => MatchResult::LOSS,
-            MatchResult::DRAW => MatchResult::DRAW,
-            MatchResult::LOSS => MatchResult::WIN,
-        }
-    }
-}
 
 #[derive(Debug)]
 struct TeamStatistic {
@@ -32,11 +13,21 @@ impl TeamStatistic {
         Self { wins: 0, draws: 0, lost: 0 }
     }
 
-    pub fn result_of_match(&mut self, r: &MatchResult) {
+    pub fn result_of_oponent_match(&mut self, r: &str) {
         match r {
-            MatchResult::WIN => self.wins += 1,
-            MatchResult::DRAW => self.draws += 1,
-            MatchResult::LOSS => self.lost += 1,
+            "loss" => self.wins += 1,
+            "draw" => self.draws += 1,
+            "win" => self.lost += 1,
+            _ => {},
+        }
+    }
+
+    pub fn result_of_match(&mut self, r: &str) {
+        match r {
+            "win" => self.wins += 1,
+            "draw" => self.draws += 1,
+            "loss" => self.lost += 1,
+            _ => {},
         }
     }
 
@@ -53,18 +44,10 @@ pub fn tally(match_results: &str) -> String {
     let mut results = HashMap::new();
 
     for mch in match_results.lines() {
-        let mch_vec = mch.split_terminator(';').collect::<Vec<_>>();
-        let team_a = mch_vec[0];
-        let team_b = mch_vec[1];
-
-        let match_result = match mch_vec[2] {
-            "win" => MatchResult::WIN,
-            "loss" => MatchResult::LOSS,
-            _ => MatchResult::DRAW,
-        };
-
-        results.entry(team_a).or_insert(TeamStatistic::new()).result_of_match(&match_result);
-        results.entry(team_b).or_insert(TeamStatistic::new()).result_of_match(&-match_result);
+        if let [team_a, team_b, result, ..] =  mch.split(";").collect::<Vec<_>>().as_slice() {
+            results.entry(team_a.clone()).or_insert(TeamStatistic::new()).result_of_match(result);
+            results.entry(team_b.clone()).or_insert(TeamStatistic::new()).result_of_oponent_match(result);
+        }
     }
     
     let mut result = Vec::new();

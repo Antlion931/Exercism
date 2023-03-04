@@ -3,4 +3,13 @@ tests
 .exercism
 .articles
 *.bats
+build.gradle.kts
+gradlew
+gradlew.bat
+settings.gradle.kts
+gradle
+.gradle
+build
+test
+users
 *.bash

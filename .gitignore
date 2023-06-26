@@ -1,5 +1,6 @@
 *.md
 tests
+target
 .exercism
 .articles
 *.bats

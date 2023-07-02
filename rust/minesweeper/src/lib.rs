@@ -1,39 +1,48 @@
+#[derive(Clone, Debug)]
+enum FieldType {
+    Bomb,
+    Number(u8),
+}
+
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
-    let width = minefield.get(0).map_or(0, |str| str.len());
+    let width = minefield.first().map_or(0, |str| str.len());
     let height = minefield.len();
 
-    let mut mine_neighbors_conts = (0..height).map(|_| (0..width).map(|_| 0).collect::<Vec<_>>() ).collect::<Vec<_>>();
+    let mut minefield_types = vec![vec![FieldType::Number(0); width]; height];
 
-    for x in 0..width {
-        for y in 0..height {
-            if minefield[y].chars().nth(x).unwrap() == '*' {
-                let x_begin = if x == 0 {0} else {x - 1};
-                let x_end = (x + 1).min(width - 1);
+    for (y, row) in minefield.iter().enumerate() {
+        for (x, _) in row.chars().enumerate().filter(|(_, c)| *c == '*') {
+            minefield_types[y][x] = FieldType::Bomb;
+            let x_begin = x.saturating_sub(1);
+            let x_end = (x + 1).min(width - 1);
 
-                let y_begin = if y ==0 {0} else {y - 1};
-                let y_end = (y + 1).min(height - 1);
+            let y_begin = y.saturating_sub(1);
+            let y_end = (y + 1).min(height - 1);
 
-                for xx in x_begin..=x_end {
-                    for yy in y_begin..=y_end {
-                        mine_neighbors_conts[yy][xx] += 1;
+            for xx in x_begin..=x_end {
+                for yy in y_begin..=y_end {
+                    if let FieldType::Number(ref mut x) = minefield_types[yy][xx] {
+                        *x += 1;
                     }
                 }
             }
         }
     }
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(height);
 
-    for y in 0..height {
+    for row in minefield_types {
         result.push(
-            minefield[y].chars().enumerate().map(|(x, c)| {
-            if c == '*' || mine_neighbors_conts[y][x] == 0 {
-                return c;
-            }
-
-            mine_neighbors_conts[y][x].to_string().chars().nth(0).unwrap()
-        }).collect());
-        
+            row.iter()
+                .map(|x| match x {
+                    FieldType::Bomb => '*',
+                    FieldType::Number(0) => ' ',
+                    FieldType::Number(n) => {
+                        char::from_digit(*n as u32, 10).expect("It will be max 8")
+                    }
+                })
+                .collect(),
+        );
     }
 
     result

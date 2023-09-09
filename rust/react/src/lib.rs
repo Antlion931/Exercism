@@ -1,8 +1,14 @@
 //TODO:
 //
 // Refactor
+// [x] make better benchmarks
+// [x] why creating input and compute cells is so slow
+//  - becouse they use vec and not hashmap
+// [x] change Hashmap to vec and use InputId and ComputeId as indexes
+//  - not good solution, need realocation in some point, changed to BTreeMap
+// [ ] split in more files this 400 line monster 
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, BTreeMap};
 use std::rc::Rc;
 use std::rc::Weak;
 
@@ -281,8 +287,8 @@ pub struct Reactor<'a, T> {
     counter_input: Counter,
     counter_compute: Counter,
     counter_callback: Counter,
-    input_cells: HashMap<InputCellId, Rc<RefCell<Cell<'a, T>>>>,
-    compute_cells: HashMap<ComputeCellId, Rc<RefCell<Cell<'a, T>>>>,
+    input_cells: BTreeMap<InputCellId, Rc<RefCell<Cell<'a, T>>>>,
+    compute_cells: BTreeMap<ComputeCellId, Rc<RefCell<Cell<'a, T>>>>,
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
@@ -292,8 +298,8 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
             counter_input: Counter::new(),
             counter_callback: Counter::new(),
             counter_compute: Counter::new(),
-            input_cells: HashMap::new(),
-            compute_cells: HashMap::new(),
+            input_cells: BTreeMap::new(),
+            compute_cells: BTreeMap::new(),
         }
     }
 

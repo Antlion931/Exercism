@@ -7,31 +7,17 @@
 // [x] change Hashmap to vec and use InputId and ComputeId as indexes
 //  - not good solution, need realocation in some point, changed to BTreeMap
 // [x] split in more files this 400 line monster 
-// [ ] change all ids to tuples
-// [ ] rethink visibility
+// [x] change all ids to tuples
+// [x] rethink visibility
+// [ ] simplify code as much as you can
+//  - [ ] avoid nest forest in set_value method
 mod cell;
 mod common;
-
 use std::cell::RefCell;
 use std::collections::{BTreeSet, BTreeMap};
 use std::rc::Rc;
 pub use common::*;
 use cell::*;
-
-struct Counter {
-    index: usize,
-}
-
-impl Counter {
-    fn new() -> Self {
-        Self { index: 0 }
-    }
-
-    fn next(&mut self) -> usize {
-        self.index += 1;
-        self.index - 1
-    }
-}
 
 pub struct Reactor<'a, T> {
     counter_input: Counter,
@@ -41,7 +27,6 @@ pub struct Reactor<'a, T> {
     compute_cells: BTreeMap<ComputeCellId, Rc<RefCell<Cell<'a, T>>>>,
 }
 
-// You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
 impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
     pub fn new() -> Self {
         Self {
@@ -55,9 +40,8 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> InputCellId {
-        let id = InputCellId {
-            id: self.counter_input.next(),
-        };
+        let id = InputCellId(self.counter_input.next());
+
         self.input_cells.insert(
             id,
             Rc::new(RefCell::new(Cell::Input(InputCell::new(initial, id)))),
@@ -84,9 +68,8 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
         dependencies: &[CellId],
         compute_func: F,
     ) -> Result<ComputeCellId, CellId> {
-        let id = ComputeCellId {
-            id: self.counter_compute.next(),
-        };
+        let id = ComputeCellId(self.counter_compute.next());
+
         let mut rc_dependencies = Vec::with_capacity(dependencies.len());
 
         for d in dependencies {
@@ -147,32 +130,31 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
     //
     // As before, that turned out to add too much extra complexity.
     pub fn set_value(&mut self, id: InputCellId, new_value: T) -> bool {
-        if let Some(cell) = self.input_cells.get(&id) {
-            if let Some(s) = cell.borrow_mut().try_mut_input() {
-                s.set(new_value);
+        if !self.input_cells.contains_key(&id) {
+            return false;
+        }
+
+        let cell = &self.input_cells[&id]; 
+
+        cell.borrow_mut().try_mut_input().unwrap().set(new_value);
+
+        let mut queue: BTreeSet<_> = cell.borrow().try_input().unwrap().to_update.iter().flat_map(|x| x.upgrade()).collect();
+
+        while let Some(c) = queue.pop_first() {
+            if let Some(compute) = c.borrow_mut().try_mut_compute() {
+                compute.update();
             }
-            if let Some(s) = cell.borrow().try_input() {
-                let mut queue: BTreeSet<_> = s.to_update.iter().flat_map(|x| x.upgrade()).collect();
 
-                while let Some(c) = queue.pop_first() {
-                    if let Some(compute) = c.borrow_mut().try_mut_compute() {
-                        compute.update();
-                    }
-
-                    if let Some(compute) = c.borrow().try_compute() {
-                        for u in &compute.to_update {
-                            if let Some(u) = u.upgrade() {
-                                queue.insert(u);
-                            }
-                        }
+            if let Some(compute) = c.borrow().try_compute() {
+                for u in &compute.to_update {
+                    if let Some(u) = u.upgrade() {
+                        queue.insert(u);
                     }
                 }
             }
-
-            true
-        } else {
-            false
         }
+
+        true
     }
 
     // Adds a callback to the specified compute cell.
@@ -192,9 +174,8 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
         id: ComputeCellId,
         callback: F,
     ) -> Option<CallbackId> {
-        let c_id = CallbackId {
-            id: self.counter_callback.next(),
-        };
+        let c_id = CallbackId(self.counter_callback.next());
+
         if let Some(c) = self.compute_cells.get(&id)?.borrow_mut().try_mut_compute() {
             c.add_callback(c_id, Box::new(callback));
         }

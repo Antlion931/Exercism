@@ -10,7 +10,10 @@
 // [x] change all ids to tuples
 // [x] rethink visibility
 // [ ] simplify code as much as you can
-//  - [ ] avoid nest forest in set_value method
+//  - [x] avoid nest forest in set_value method
+//  - [ ] add comment explaining why borrow and mut borrow work there
+//  - [ ] try to find a way to change mut borrow to borrow
+//  - [ ] change all method that are not in lib.rs and borrow input and compute to return Result
 mod cell;
 mod common;
 use std::cell::RefCell;
@@ -136,20 +139,16 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
 
         let cell = &self.input_cells[&id]; 
 
-        cell.borrow_mut().try_mut_input().unwrap().set(new_value);
+        cell.borrow_mut().try_mut_input().expect("There are only input cells in input_cells").set(new_value);
 
-        let mut queue: BTreeSet<_> = cell.borrow().try_input().unwrap().to_update.iter().flat_map(|x| x.upgrade()).collect();
+        let mut queue: BTreeSet<_> = cell.borrow().try_input().expect("There are only input cells in input_cells").to_update.iter().flat_map(|x| x.upgrade()).collect();
 
         while let Some(c) = queue.pop_first() {
-            if let Some(compute) = c.borrow_mut().try_mut_compute() {
-                compute.update();
-            }
+            c.borrow_mut().try_mut_compute().expect("There are only compute cells in queue, as in to_update").update();
 
-            if let Some(compute) = c.borrow().try_compute() {
-                for u in &compute.to_update {
-                    if let Some(u) = u.upgrade() {
-                        queue.insert(u);
-                    }
+            for u in &c.borrow().try_compute().expect("There are only compute cells in queue, as in to_update").to_update {
+                if let Some(u) = u.upgrade() {
+                    queue.insert(u);
                 }
             }
         }

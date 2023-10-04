@@ -13,7 +13,7 @@
 //  - [x] avoid nest forest in set_value method
 //  - [ ] add comment explaining why borrow and mut borrow work there
 //  - [ ] try to find a way to change mut borrow to borrow
-//  - [ ] change all method that are not in lib.rs and borrow input and compute to return Result
+//  - [x] change all method that are not in lib.rs and borrow input and compute to return Result
 mod cell;
 mod common;
 use std::cell::RefCell;
@@ -94,7 +94,7 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
                 id,
                 &rc_dependencies,
                 compute_func,
-            )))),
+            ).expect("There is no borrow at this point")))),
         );
 
         let rc_function = Rc::clone(
@@ -104,7 +104,7 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
         );
 
         for d in rc_dependencies {
-            d.borrow_mut().add_to_update(Rc::downgrade(&rc_function));
+            d.try_borrow_mut().expect("Borrows from creating new compute should be droped").add_to_update(Rc::downgrade(&rc_function));
         }
 
         Ok(id)

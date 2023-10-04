@@ -1,3 +1,7 @@
+use std::cell::BorrowError;
+use std::cell::RefCell;
+use std::rc::Rc;
+use super::Cell;
 /// `InputCellId` is a unique identifier for an input cell.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InputCellId(pub usize);
@@ -48,3 +52,9 @@ impl Counter {
     }
 }
 
+pub fn try_get_values<'a, T: Copy + PartialEq>(dependencies: impl AsRef<[Rc<RefCell<Cell<'a, T>>>]>) -> Result<Vec<T>, BorrowError> {
+        dependencies.as_ref()
+            .iter()
+            .map(|x| x.try_borrow().map(|x| x.get_value()))
+            .collect::<Result<Vec<_>, _>>()
+}

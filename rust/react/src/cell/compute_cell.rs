@@ -1,3 +1,4 @@
+use std::cell::BorrowError;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -42,32 +43,27 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
         id: ComputeCellId,
         dependencies: &[Rc<RefCell<Cell<'a, T>>>],
         compute_func: F,
-    ) -> Self {
-        let value = compute_func(
-            &dependencies
-                .iter()
-                .map(|x| x.borrow().get_value())
-                .collect::<Vec<_>>(),
-        );
+    ) -> Result<Self, BorrowError> {
+        let value = compute_func(&try_get_values(dependencies)?);
 
-        Self {
+        Ok(Self {
             id,
             function: Box::new(compute_func),
             value,
             dependencies: dependencies.into(),
             to_update: Vec::new(),
             callbacks: Vec::new(),
-        }
+        })
+
     }
 
-    pub fn update(&mut self) {
-        let new_value = (self.function)(
-            &self
-                .dependencies
-                .iter()
-                .map(|x| x.borrow().get_value())
-                .collect::<Vec<_>>(),
-        );
+
+    fn compute(&self) -> Result<T, BorrowError> {
+        Ok((self.function)(&try_get_values(&self.dependencies)?))
+    }
+
+    pub fn update(&mut self) -> Result<(), BorrowError> {
+        let new_value = self.compute()?;
 
         if new_value != self.value {
             self.value = new_value;
@@ -76,6 +72,8 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
                 (c.1)(self.value);
             }
         }
+
+        Ok(())
     }
 
     pub fn add_callback(&mut self, id: CallbackId, f: Box<dyn FnMut(T) + 'a>) {

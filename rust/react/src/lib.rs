@@ -14,6 +14,10 @@
 //  - [ ] add comment explaining why borrow and mut borrow work there
 //  - [ ] try to find a way to change mut borrow to borrow
 //  - [x] change all method that are not in lib.rs and borrow input and compute to return Result
+// [ ] add workhous vec
+//  - [x] add it at least to every compute
+//   - success, alocation decresed from 2,244 allocs and 909,341 bytes to 1,304 allocs and 462,589 bytes speeding by 20,000 ns/iter in benchmark for this test
+//  - [ ] add it to Reactor common for every compute
 mod cell;
 mod common;
 use std::cell::RefCell;

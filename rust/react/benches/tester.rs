@@ -64,7 +64,7 @@ fn tester_getting_value_of_1000_compute_cells(b: &mut Bencher) {
 
 #[bench]
 fn tester_100_chained_update_first(b: &mut Bencher) {
-    let mut react = Reactor::new();
+    let mut react = Reactor::<u128>::new();
 
     let mut all = Vec::with_capacity(1000);
 

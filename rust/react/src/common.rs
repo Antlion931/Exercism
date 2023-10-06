@@ -52,9 +52,12 @@ impl Counter {
     }
 }
 
-pub fn try_get_values<'a, T: Copy + PartialEq>(dependencies: impl AsRef<[Rc<RefCell<Cell<'a, T>>>]>) -> Result<Vec<T>, BorrowError> {
-        dependencies.as_ref()
+pub fn try_get_values_to_vec<'a, T: Copy + PartialEq>(dependencies: impl AsRef<[Rc<RefCell<Cell<'a, T>>>]>, workhouse: &mut Vec<T>) -> Result<(), BorrowError> {
+        workhouse.clear(); 
+        for x in dependencies.as_ref()
             .iter()
-            .map(|x| x.try_borrow().map(|x| x.get_value()))
-            .collect::<Result<Vec<_>, _>>()
+            .map(|x| x.try_borrow().map(|x| x.get_value())) {
+                workhouse.push(x?);
+            }
+        Ok(())
 }

@@ -12,6 +12,7 @@ pub struct ComputeCell<'a, T> {
     dependencies: Vec<Rc<RefCell<Cell<'a, T>>>>,
     pub to_update: Vec<Weak<RefCell<Cell<'a, T>>>>,
     callbacks: Vec<(CallbackId, Box<dyn FnMut(T) + 'a>)>,
+    workhouse: Vec<T>,
 }
 
 impl<'a, T> PartialEq for ComputeCell<'a, T> {
@@ -44,7 +45,10 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
         dependencies: &[Rc<RefCell<Cell<'a, T>>>],
         compute_func: F,
     ) -> Result<Self, BorrowError> {
-        let value = compute_func(&try_get_values(dependencies)?);
+        let mut workhouse = Vec::new();
+        try_get_values_to_vec(dependencies, &mut workhouse)?;
+
+        let value = compute_func(&workhouse);
 
         Ok(Self {
             id,
@@ -53,13 +57,15 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
             dependencies: dependencies.into(),
             to_update: Vec::new(),
             callbacks: Vec::new(),
+            workhouse
         })
 
     }
 
 
-    fn compute(&self) -> Result<T, BorrowError> {
-        Ok((self.function)(&try_get_values(&self.dependencies)?))
+    fn compute(&mut self) -> Result<T, BorrowError> {
+        try_get_values_to_vec(&self.dependencies, &mut self.workhouse)?;
+        Ok((self.function)(&self.workhouse))
     }
 
     pub fn update(&mut self) -> Result<(), BorrowError> {

@@ -6,7 +6,7 @@
 //  - becouse they use vec and not hashmap
 // [x] change Hashmap to vec and use InputId and ComputeId as indexes
 //  - not good solution, need realocation in some point, changed to BTreeMap
-// [x] split in more files this 400 line monster 
+// [x] split in more files this 400 line monster
 // [x] change all ids to tuples
 // [x] rethink visibility
 // [ ] simplify code as much as you can
@@ -18,13 +18,18 @@
 //  - [x] add it at least to every compute
 //   - success, alocation decresed from 2,244 allocs and 909,341 bytes to 1,304 allocs and 462,589 bytes speeding by 20,000 ns/iter in benchmark for this test
 //  - [ ] add it to Reactor common for every compute
+// [x] add better build conifig
+//  - another 20,000 ns/iter saved in 100 chained computes benchmark 
+//  - with new allocator and build config my example for valgrind is optimazed so well, it is not
+//  using heap at all ;_;
+// [ ] write better example to test heap allocations
 mod cell;
 mod common;
-use std::cell::RefCell;
-use std::collections::{BTreeSet, BTreeMap};
-use std::rc::Rc;
-pub use common::*;
 use cell::*;
+pub use common::*;
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
 
 pub struct Reactor<'a, T> {
     counter_input: Counter,
@@ -94,11 +99,10 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
 
         self.compute_cells.insert(
             id,
-            Rc::new(RefCell::new(Cell::Compute(ComputeCell::new(
-                id,
-                &rc_dependencies,
-                compute_func,
-            ).expect("There is no borrow at this point")))),
+            Rc::new(RefCell::new(Cell::Compute(
+                ComputeCell::new(id, &rc_dependencies, compute_func)
+                    .expect("There is no borrow at this point"),
+            ))),
         );
 
         let rc_function = Rc::clone(
@@ -108,11 +112,14 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
         );
 
         for d in rc_dependencies {
-            d.try_borrow_mut().expect("Borrows from creating new compute should be droped").add_to_update(Rc::downgrade(&rc_function));
+            d.try_borrow_mut()
+                .expect("Borrows from creating new compute should be droped")
+                .add_to_update(Rc::downgrade(&rc_function));
         }
 
         Ok(id)
     }
+
 
     // Retrieves the current value of the cell, or None if the cell does not exist.
     //
@@ -141,16 +148,34 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
             return false;
         }
 
-        let cell = &self.input_cells[&id]; 
+        let cell = &self.input_cells[&id];
 
-        cell.borrow_mut().try_mut_input().expect("There are only input cells in input_cells").set(new_value);
+        cell.borrow_mut()
+            .try_mut_input()
+            .expect("There are only input cells in input_cells")
+            .set(new_value);
 
-        let mut queue: BTreeSet<_> = cell.borrow().try_input().expect("There are only input cells in input_cells").to_update.iter().flat_map(|x| x.upgrade()).collect();
+        let mut queue: BTreeSet<_> = cell
+            .borrow()
+            .try_input()
+            .expect("There are only input cells in input_cells")
+            .to_update
+            .iter()
+            .flat_map(|x| x.upgrade())
+            .collect();
 
         while let Some(c) = queue.pop_first() {
-            c.borrow_mut().try_mut_compute().expect("There are only compute cells in queue, as in to_update").update();
+            c.borrow_mut()
+                .try_mut_compute()
+                .expect("There are only compute cells in queue, as in to_update")
+                .update();
 
-            for u in &c.borrow().try_compute().expect("There are only compute cells in queue, as in to_update").to_update {
+            for u in &c
+                .borrow()
+                .try_compute()
+                .expect("There are only compute cells in queue, as in to_update")
+                .to_update
+            {
                 if let Some(u) = u.upgrade() {
                     queue.insert(u);
                 }

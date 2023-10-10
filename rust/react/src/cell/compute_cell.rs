@@ -1,9 +1,9 @@
+use super::Cell;
+use crate::common::*;
 use std::cell::BorrowError;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
-use crate::common::*;
-use super::Cell;
 
 pub struct ComputeCell<'a, T> {
     id: ComputeCellId,
@@ -21,11 +21,7 @@ impl<'a, T> PartialEq for ComputeCell<'a, T> {
     }
 }
 
-impl<'a, T> Eq for ComputeCell<'a, T> {
-    fn assert_receiver_is_total_eq(&self) {
-        self.id.assert_receiver_is_total_eq()
-    }
-}
+impl<'a, T> Eq for ComputeCell<'a, T> {}
 
 impl<'a, T> PartialOrd for ComputeCell<'a, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -57,11 +53,9 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
             dependencies: dependencies.into(),
             to_update: Vec::new(),
             callbacks: Vec::new(),
-            workhouse
+            workhouse,
         })
-
     }
-
 
     fn compute(&mut self) -> Result<T, BorrowError> {
         try_get_values_to_vec(&self.dependencies, &mut self.workhouse)?;
@@ -96,4 +90,3 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
         Ok(())
     }
 }
-

@@ -1,6 +1,5 @@
-#[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 use react::*;
+use std::hint::black_box;
 
 fn main() {
     let mut react = Reactor::<u128>::new();
@@ -12,11 +11,13 @@ fn main() {
     all.push(CellId::Input(input_id));
 
     for _ in 1..100 {
-        all.push(CellId::Compute(react.create_compute(&all, |x| x.iter().sum()).unwrap()));
+        all.push(CellId::Compute(
+            react.create_compute(&all, |x| x.iter().sum()).unwrap(),
+        ));
     }
 
-    react.set_value(input_id, 1);
+    react.set_value(input_id, black_box(1));
     println!("{:?}", react.value(all[99]));
-    react.set_value(input_id, 0);
+    react.set_value(input_id, black_box(0));
     println!("{:?}", react.value(all[99]));
 }

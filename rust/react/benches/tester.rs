@@ -6,11 +6,8 @@ use test::{black_box, Bencher};
 
 #[bench]
 fn tester_creating_new(b: &mut Bencher) {
-    b.iter(|| {
-        black_box(Reactor::<u32>::new())
-    })
+    b.iter(|| black_box(Reactor::<u32>::new()))
 }
-
 
 #[bench]
 fn tester_adding_1000_input_cells(b: &mut Bencher) {
@@ -40,7 +37,9 @@ fn tester_adding_1000_compute_cells(b: &mut Bencher) {
 fn tester_getting_value_of_1000_input_cells(b: &mut Bencher) {
     let mut react = Reactor::new();
 
-    let id_vec: Vec<_> = (0..1000).map(|i| CellId::Input(react.create_input(i))).collect();
+    let id_vec: Vec<_> = (0..1000)
+        .map(|i| CellId::Input(react.create_input(i)))
+        .collect();
 
     b.iter(|| {
         for i in id_vec.iter() {
@@ -53,7 +52,9 @@ fn tester_getting_value_of_1000_input_cells(b: &mut Bencher) {
 fn tester_getting_value_of_1000_compute_cells(b: &mut Bencher) {
     let mut react = Reactor::new();
 
-    let id_vec: Vec<_> = (0..1000).map(|_| CellId::Compute(react.create_compute(&[], |_| 1).unwrap())).collect();
+    let id_vec: Vec<_> = (0..1000)
+        .map(|_| CellId::Compute(react.create_compute(&[], |_| 1).unwrap()))
+        .collect();
 
     b.iter(|| {
         for i in id_vec.iter() {
@@ -73,7 +74,9 @@ fn tester_100_chained_update_first(b: &mut Bencher) {
     all.push(CellId::Input(input_id));
 
     for _ in 1..100 {
-        all.push(CellId::Compute(react.create_compute(&all, |x| x.iter().sum()).unwrap()));
+        all.push(CellId::Compute(
+            react.create_compute(&all, |x| x.iter().sum()).unwrap(),
+        ));
     }
 
     b.iter(|| {
@@ -83,4 +86,3 @@ fn tester_100_chained_update_first(b: &mut Bencher) {
         black_box(react.value(all[99]));
     })
 }
-

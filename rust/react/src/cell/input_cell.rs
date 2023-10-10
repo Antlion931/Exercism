@@ -1,7 +1,7 @@
+use super::Cell;
+use crate::common::*;
 use std::cell::RefCell;
 use std::rc::Weak;
-use crate::common::*;
-use super::Cell;
 
 pub struct InputCell<'a, T> {
     id: InputCellId,
@@ -15,11 +15,7 @@ impl<'a, T> PartialEq for InputCell<'a, T> {
     }
 }
 
-impl<'a, T> Eq for InputCell<'a, T> {
-    fn assert_receiver_is_total_eq(&self) {
-        self.id.assert_receiver_is_total_eq()
-    }
-}
+impl<'a, T> Eq for InputCell<'a, T> {}
 
 impl<'a, T> PartialOrd for InputCell<'a, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -46,5 +42,3 @@ impl<'a, T> InputCell<'a, T> {
         }
     }
 }
-
-

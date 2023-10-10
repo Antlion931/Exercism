@@ -1,7 +1,7 @@
+use super::Cell;
 use std::cell::BorrowError;
 use std::cell::RefCell;
 use std::rc::Rc;
-use super::Cell;
 /// `InputCellId` is a unique identifier for an input cell.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InputCellId(pub usize);
@@ -52,12 +52,17 @@ impl Counter {
     }
 }
 
-pub fn try_get_values_to_vec<'a, T: Copy + PartialEq>(dependencies: impl AsRef<[Rc<RefCell<Cell<'a, T>>>]>, workhouse: &mut Vec<T>) -> Result<(), BorrowError> {
-        workhouse.clear(); 
-        for x in dependencies.as_ref()
-            .iter()
-            .map(|x| x.try_borrow().map(|x| x.get_value())) {
-                workhouse.push(x?);
-            }
-        Ok(())
+pub fn try_get_values_to_vec<'a, T: Copy + PartialEq>(
+    dependencies: impl AsRef<[Rc<RefCell<Cell<'a, T>>>]>,
+    workhouse: &mut Vec<T>,
+) -> Result<(), BorrowError> {
+    workhouse.clear();
+    for x in dependencies
+        .as_ref()
+        .iter()
+        .map(|x| x.try_borrow().map(|x| x.get_value()))
+    {
+        workhouse.push(x?);
+    }
+    Ok(())
 }

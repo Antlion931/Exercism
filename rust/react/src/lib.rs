@@ -1,5 +1,4 @@
 //TODO:
-//
 // Refactor
 // [x] make better benchmarks
 // [x] why creating input and compute cells is so slow
@@ -19,10 +18,12 @@
 //   - success, alocation decresed from 2,244 allocs and 909,341 bytes to 1,304 allocs and 462,589 bytes speeding by 20,000 ns/iter in benchmark for this test
 //  - [ ] add it to Reactor common for every compute
 // [x] add better build conifig
-//  - another 20,000 ns/iter saved in 100 chained computes benchmark 
+//  - another 20,000 ns/iter saved in 100 chained computes benchmark
 //  - with new allocator and build config my example for valgrind is optimazed so well, it is not
 //  using heap at all ;_;
-// [ ] write better example to test heap allocations
+// [x] write better example to test heap allocations
+//  - the problem lied in jemalloc, which wasn't detected by valgrind, by the way it was a bit
+//  worse then standard, 486,816 bytes allocated
 mod cell;
 mod common;
 use cell::*;
@@ -119,7 +120,6 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
 
         Ok(id)
     }
-
 
     // Retrieves the current value of the cell, or None if the cell does not exist.
     //

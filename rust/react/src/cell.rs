@@ -88,4 +88,3 @@ impl<'a, T: Copy> Cell<'a, T> {
         }
     }
 }
-

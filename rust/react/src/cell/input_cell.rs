@@ -19,7 +19,7 @@ impl<'a, T> Eq for InputCell<'a, T> {}
 
 impl<'a, T> PartialOrd for InputCell<'a, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id.partial_cmp(&other.id)
+        Some(self.cmp(&other))
     }
 }
 

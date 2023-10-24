@@ -12,7 +12,6 @@ pub struct ComputeCell<'a, T> {
     dependencies: Vec<Rc<RefCell<Cell<'a, T>>>>,
     pub to_update: Vec<Weak<RefCell<Cell<'a, T>>>>,
     callbacks: Vec<(CallbackId, Box<dyn FnMut(T) + 'a>)>,
-    workhouse: Vec<T>,
 }
 
 impl<'a, T> PartialEq for ComputeCell<'a, T> {
@@ -25,7 +24,7 @@ impl<'a, T> Eq for ComputeCell<'a, T> {}
 
 impl<'a, T> PartialOrd for ComputeCell<'a, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id.partial_cmp(&other.id)
+        Some(self.cmp(&other))
     }
 }
 
@@ -40,11 +39,11 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
         id: ComputeCellId,
         dependencies: &[Rc<RefCell<Cell<'a, T>>>],
         compute_func: F,
+        workhouse: &mut Vec<T>,
     ) -> Result<Self, BorrowError> {
-        let mut workhouse = Vec::new();
-        try_get_values_to_vec(dependencies, &mut workhouse)?;
+        try_get_values_to_vec(dependencies, workhouse)?;
 
-        let value = compute_func(&workhouse);
+        let value = compute_func(workhouse);
 
         Ok(Self {
             id,
@@ -53,17 +52,16 @@ impl<'a, T: Copy + PartialEq> ComputeCell<'a, T> {
             dependencies: dependencies.into(),
             to_update: Vec::new(),
             callbacks: Vec::new(),
-            workhouse,
         })
     }
 
-    fn compute(&mut self) -> Result<T, BorrowError> {
-        try_get_values_to_vec(&self.dependencies, &mut self.workhouse)?;
-        Ok((self.function)(&self.workhouse))
+    fn compute(&mut self, workhouse: &mut Vec<T>) -> Result<T, BorrowError> {
+        try_get_values_to_vec(&self.dependencies, workhouse)?;
+        Ok((self.function)(workhouse))
     }
 
-    pub fn update(&mut self) -> Result<(), BorrowError> {
-        let new_value = self.compute()?;
+    pub fn update(&mut self, workhouse: &mut Vec<T>) -> Result<(), BorrowError> {
+        let new_value = self.compute(workhouse)?;
 
         if new_value != self.value {
             self.value = new_value;

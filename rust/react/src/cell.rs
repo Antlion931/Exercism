@@ -25,12 +25,7 @@ impl<'a, T> Eq for Cell<'a, T> {}
 
 impl<'a, T> PartialOrd for Cell<'a, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (self, other) {
-            (Cell::Input(x), Cell::Input(y)) => x.partial_cmp(y),
-            (Cell::Compute(x), Cell::Compute(y)) => x.partial_cmp(y),
-            (Cell::Input(_), Cell::Compute(_)) => Some(std::cmp::Ordering::Less),
-            (Cell::Compute(_), Cell::Input(_)) => Some(std::cmp::Ordering::Greater),
-        }
+        Some(self.cmp(&other))
     }
 }
 

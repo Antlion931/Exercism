@@ -1,29 +1,3 @@
-//TODO:
-// Refactor
-// [x] make better benchmarks
-// [x] why creating input and compute cells is so slow
-//  - becouse they use vec and not hashmap
-// [x] change Hashmap to vec and use InputId and ComputeId as indexes
-//  - not good solution, need realocation in some point, changed to BTreeMap
-// [x] split in more files this 400 line monster
-// [x] change all ids to tuples
-// [x] rethink visibility
-// [ ] simplify code as much as you can
-//  - [x] avoid nest forest in set_value method
-//  - [ ] add comment explaining why borrow and mut borrow work there
-//  - [ ] try to find a way to change mut borrow to borrow
-//  - [x] change all method that are not in lib.rs and borrow input and compute to return Result
-// [ ] add workhous vec
-//  - [x] add it at least to every compute
-//   - success, alocation decresed from 2,244 allocs and 909,341 bytes to 1,304 allocs and 462,589 bytes speeding by 20,000 ns/iter in benchmark for this test
-//  - [ ] add it to Reactor common for every compute
-// [x] add better build conifig
-//  - another 20,000 ns/iter saved in 100 chained computes benchmark
-//  - with new allocator and build config my example for valgrind is optimazed so well, it is not
-//  using heap at all ;_;
-// [x] write better example to test heap allocations
-//  - the problem lied in jemalloc, which wasn't detected by valgrind, by the way it was a bit
-//  worse then standard, 486,816 bytes allocated
 mod cell;
 mod common;
 use cell::*;
@@ -38,6 +12,7 @@ pub struct Reactor<'a, T> {
     counter_callback: Counter,
     input_cells: BTreeMap<InputCellId, Rc<RefCell<Cell<'a, T>>>>,
     compute_cells: BTreeMap<ComputeCellId, Rc<RefCell<Cell<'a, T>>>>,
+    workhouse: Vec<T>,
 }
 
 impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
@@ -48,13 +23,13 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
             counter_compute: Counter::new(),
             input_cells: BTreeMap::new(),
             compute_cells: BTreeMap::new(),
+            workhouse: Vec::new(),
         }
     }
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> InputCellId {
         let id = InputCellId(self.counter_input.next());
-
         self.input_cells.insert(
             id,
             Rc::new(RefCell::new(Cell::Input(InputCell::new(initial, id)))),
@@ -101,7 +76,7 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
         self.compute_cells.insert(
             id,
             Rc::new(RefCell::new(Cell::Compute(
-                ComputeCell::new(id, &rc_dependencies, compute_func)
+                ComputeCell::new(id, &rc_dependencies, compute_func, &mut self.workhouse)
                     .expect("There is no borrow at this point"),
             ))),
         );
@@ -168,7 +143,8 @@ impl<'a, T: Copy + PartialEq + 'a> Reactor<'a, T> {
             c.borrow_mut()
                 .try_mut_compute()
                 .expect("There are only compute cells in queue, as in to_update")
-                .update();
+                .update(&mut self.workhouse)
+                .unwrap();
 
             for u in &c
                 .borrow()

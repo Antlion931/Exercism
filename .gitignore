@@ -1,3 +1,6 @@
+.gitignore
+*.o
+tests
 *.md
 tests
 target
@@ -8,6 +11,9 @@ build.gradle.kts
 gradlew
 gradlew.bat
 settings.gradle.kts
+*test.c
+Makefile
+vendor
 gradle
 .gradle
 build

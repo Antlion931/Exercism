@@ -1,3 +1,4 @@
+runner.mips
 .gitignore
 *.o
 tests
